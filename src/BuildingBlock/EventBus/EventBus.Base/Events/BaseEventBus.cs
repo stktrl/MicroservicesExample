@@ -15,16 +15,16 @@ namespace EventBus.Base.Events
     {
         public readonly IServiceProvider ServiceProvider;
         public readonly IEventBusSubscriptionManager SubManager;
-        private EventBusConfig eventBusConfig;
+        private EventBusConfig EventBusConfig { get; set; }
 
 
-        protected BaseEventBus(IServiceProvider serviceProvider, EventBusConfig eventBusConfig)
+        protected BaseEventBus(IServiceProvider serviceProvider, EventBusConfig config)
         {
             ServiceProvider = serviceProvider;
             SubManager = new InMemoryEventBusSubscriptionManager(ProcessEventName);
-            this.eventBusConfig = eventBusConfig;
+            this.EventBusConfig = EventBusConfig;
         }
-        public async Task<bool> ProcessEvent (string eventName ,string message)
+        public async Task<bool> ProcessEvent(string eventName, string message)
         {
             eventName = ProcessEventName(eventName);
             var processed = false;
@@ -37,11 +37,11 @@ namespace EventBus.Base.Events
                     foreach (var subscription in substriptions)
                     {
                         var handler = ServiceProvider.GetService(subscription.HandlerType);
-                        if (handler ==null)
+                        if (handler == null)
                         {
                             continue;
                         }
-                        var eventType = SubManager.GetEventTypeByName($"{eventBusConfig.EventNamePrefix}{eventName}{eventBusConfig.EventNameSuffix}");
+                        var eventType = SubManager.GetEventTypeByName($"{EventBusConfig.EventNamePrefix}{eventName}{EventBusConfig.EventNameSuffix}");
                         var integrationEvent = JsonConvert.DeserializeObject(message, eventType);
 
                         var concreteType = typeof(IIntegrationEventHandler<>).MakeGenericType(eventType);
@@ -54,44 +54,37 @@ namespace EventBus.Base.Events
             }
             return processed;
         }
-        public virtual string ProcessEventName(string eventName)
+        public virtual string ProcessEventName(string eventName)//örn OrderCreatedIntegrationEvent ----> OrderCreated
         {
-            if (eventBusConfig.DeleteEventPrefix)
+            if (EventBusConfig.DeleteEventPrefix)
             {
-                eventName = eventName.TrimStart(eventBusConfig.EventNamePrefix.ToArray());
+                eventName = eventName.TrimStart(EventBusConfig.EventNamePrefix.ToArray());
             }
-            if (eventBusConfig.DeleteEventSuffix)
+            if (EventBusConfig.DeleteEventSuffix)
             {
-                eventName = eventName.TrimEnd(eventBusConfig.EventNameSuffix.ToArray());
+                eventName = eventName.TrimEnd(EventBusConfig.EventNameSuffix.ToArray());
             }
             return eventName;
         }
         public virtual string GetSubName(string eventName)
         {
-            return $"{eventBusConfig.SubscriberClientAppName}.{ProcessEventName(eventName)}";
-        }
+            return $"{EventBusConfig.SubscriberClientAppName}.{ProcessEventName(eventName)}";//örn: notificationService.OrderCreatedIntegrationEvent---->notificationService.OrderCreated aynı zamanda queue name ismine denk gelir
+        }//Sub. durumunun ismini getirmek için kullanılır
         public virtual void Dispose()
         {
-            eventBusConfig = null;
+            EventBusConfig = null;
+            SubManager.Clear();
 
         }
-        public void Publish(IntegrationEvent @event)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract void Publish(IntegrationEvent @event);
 
-        public void Subscribe<T, TH>()
+        public abstract void Subscribe<T, TH>()
             where T : IntegrationEvent
-            where TH : IIntegrationEventHandler<T>
-        {
-            throw new NotImplementedException();
-        }
+            where TH : IIntegrationEventHandler<T>;
 
-        public void UnSubscribe<T, TH>()
+        public abstract void UnSubscribe<T, TH>()
             where T : IntegrationEvent
-            where TH : IIntegrationEventHandler<T>
-        {
-            throw new NotImplementedException();
-        }
+            where TH : IIntegrationEventHandler<T>;
     }
+
 }
