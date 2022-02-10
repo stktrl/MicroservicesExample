@@ -31,7 +31,10 @@ namespace EventBus.RabbitMQ
                 connectionFactory = JsonConvert.DeserializeObject<ConnectionFactory>(connJson);
             }
             else
+            {
                 connectionFactory = new ConnectionFactory();
+            }
+               
 
             persistentConnection = new RabbitMQPersistentConnection(connectionFactory, config.ConnectionRetryCount);
             consumerChannel = CreateConsumerChannel();

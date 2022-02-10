@@ -22,7 +22,7 @@ namespace EventBus.Base.Events
         {
             ServiceProvider = serviceProvider;
             SubManager = new InMemoryEventBusSubscriptionManager(ProcessEventName);
-            this.EventBusConfig = EventBusConfig;
+            this.EventBusConfig = config;
         }
         public async Task<bool> ProcessEvent(string eventName, string message)
         {
